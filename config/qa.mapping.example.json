@@ -1,0 +1,13 @@
+{
+  "targetApplicationIds": {
+    "CustomerSupport": "REPLACE_WITH_EXISTING_QA_APPLICATION_ID_IF_ANY"
+  },
+  "replacements": [
+    {"from":"https://dev-api.example.com", "to":"https://qa-api.example.com"},
+    {"from":"arn:aws:lambda:us-east-1:111111111111:function:customer-dev", "to":"arn:aws:lambda:us-east-1:222222222222:function:customer-qa"}
+  ],
+  "forbiddenSourceStrings": ["111111111111", "dev-api.example.com"],
+  "approvedExternalDependencies": [],
+  "deploymentEnvironment":"qa",
+  "languageCodes":["en-US"]
+}
