@@ -1,0 +1,74 @@
+# Import into Harness Pipeline Studio (YAML). Replace org/project/group and delegate values.
+# Trigger manually with a FULL 40-character approved Git SHA; avoid mutable branch references.
+pipeline:
+  name: ACXD_GitHub_To_QA
+  identifier: ACXD_GitHub_To_QA
+  projectIdentifier: REPLACE_PROJECT
+  orgIdentifier: REPLACE_ORG
+  tags: {}
+  variables:
+    - name: git_sha
+      type: String
+      required: true
+      value: <+input>
+    - name: github_ssh_url
+      type: String
+      required: true
+      value: git@github.com:YOUR-ORG/acxd-definitions.git
+    - name: qa_workspace_id
+      type: String
+      required: true
+      value: REPLACE_QA_WORKSPACE_UUID
+  stages:
+    - stage:
+        name: Deploy_ACXD_to_QA
+        identifier: Deploy_ACXD_to_QA
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: ShellScript
+                  name: Checkout_Validate_Deploy
+                  identifier: Checkout_Validate_Deploy
+                  timeout: 45m
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |-
+                          set -euo pipefail
+                          work="$(mktemp -d)"
+                          trap 'rm -rf "$work"' EXIT
+                          git clone --no-checkout "$GITHUB_REPO_SSH" "$work/repo"
+                          cd "$work/repo"
+                          git fetch --depth 1 origin "$GIT_SHA" || true
+                          git checkout --detach "$GIT_SHA"
+                          test "$(git rev-parse HEAD)" = "$GIT_SHA"
+                          mkdir -p config
+                          printf '%s' "$QA_MAPPING_JSON" > config/qa.mapping.json
+                          chmod 600 config/qa.mapping.json
+                          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+                          node scripts/acxd.mjs validate
+                          QA_MAPPING_FILE=config/qa.mapping.json node scripts/acxd.mjs deploy --dry-run
+                          CONFIRM_QA_DEPLOY=YES QA_MAPPING_FILE=config/qa.mapping.json node scripts/acxd.mjs deploy
+                    environmentVariables:
+                      - name: GITHUB_REPO_SSH
+                        type: String
+                        value: <+pipeline.variables.github_ssh_url>
+                      - name: GIT_SHA
+                        type: String
+                        value: <+pipeline.variables.git_sha>
+                      - name: ACXD_WORKSPACE_ID
+                        type: String
+                        value: <+pipeline.variables.qa_workspace_id>
+                      - name: ACXD_API_KEY
+                        type: Secret
+                        value: <+secrets.getValue("acxd_qa_api_key")>
+                      - name: QA_MAPPING_JSON
+                        type: Secret
+                        value: <+secrets.getValue("acxd_qa_mapping_json")>
+                    delegateSelectors:
+                      - acxd-release

@@ -1,0 +1,7 @@
+{
+  "name": "acxd-github-harness-qa", "version": "1.0.0", "private": true,
+  "type": "module",
+  "scripts": {"export":"node scripts/acxd.mjs export", "validate":"node scripts/acxd.mjs validate", "plan":"node scripts/acxd.mjs deploy --dry-run", "deploy:qa":"node scripts/acxd.mjs deploy"},
+  "dependencies": {"amazon-connect-acxd-sdk":"0.2.0"},
+  "engines":{"node":">=20"}
+}
